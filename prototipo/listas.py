@@ -32,6 +32,9 @@ import coletor as c
 
 OUT = c.SAIDA / "listas"
 TOTAL_CAMARA, TOTAL_SENADO = 513, 81
+# A API da Câmara só lista quem registrou voto; não informa presença. Quem estava no Plenário
+# sem votar e quem faltou ficam iguais, por isso o rótulo é "Não votou", e não "Ausente".
+NAO_VOTOU = "Não votou"
 
 # Câmara: tipoVoto → rótulo. "Artigo 17" = Presidente da Câmara, que não vota.
 VOTO_CAMARA = {"Sim": "Sim", "Não": "Não", "Abstenção": "Abstenção", "Obstrução": "Obstrução",
@@ -71,20 +74,43 @@ def por_partido(nominal: list[dict], orientacoes: dict[str, str], secreta: bool)
 
 
 def validar(nominal, total_casa, oficial: dict, secreta: bool) -> dict:
+    """Confere a lista e decompõe o total da Casa.
+
+    Na Câmara, o "Total" oficial do placar = Sim + Não + Abstenção. Obstrução, o presidente da
+    sessão e quem não votou ficam fora dele. A decomposição deixa a conta explícita:
+    total_oficial + obstrução + presidente + sem voto = parlamentares em exercício.
+    """
     ids = [p["id"] for p in nominal]
     cont = Counter(p["voto"] for p in nominal)
+    sim, nao, abst = cont.get("Sim", 0), cont.get("Não", 0), cont.get("Abstenção", 0)
+    presid = sum(n for k, n in cont.items() if k and k.startswith("Presidente"))
+    obstr = cont.get("Obstrução", 0)
+    secretos = cont.get("Votou (secreto)", 0)
+    sem_voto = len(nominal) - sim - nao - abst - obstr - presid - secretos
+    comp = {
+        "em_exercicio": len(nominal),
+        "sim": sim, "nao": nao, "abstencao": abst,
+        "total_placar (sim+nao+abstencao)": sim + nao + abst,
+        "obstrucao": obstr,
+        "presidente_nao_vota": presid,
+        "sem_voto_registrado": sem_voto,
+    }
+    if secreta:
+        comp["votou_secreto"] = secretos
     v = {
         "total_parlamentares": len(nominal),
         "total_esperado": total_casa,
         "sem_duplicados": len(ids) == len(set(ids)),
         "placar_oficial": oficial or None,
-        "placar_contado": {k: cont.get(k, 0) for k in ("Sim", "Não", "Abstenção", "Obstrução")},
+        "composicao": comp,
     }
     checks = [v["sem_duplicados"], len(nominal) == total_casa]
+    if oficial and secreta and oficial.get("Total") is not None:
+        checks.append(oficial["Total"] == secretos)  # em votação secreta, Total = quem votou
     if oficial and not secreta:
-        for k in ("Sim", "Não"):
-            if k in oficial:
-                checks.append(oficial[k] == cont.get(k, 0))
+        for k, val in (("Sim", sim), ("Não", nao), ("Abstenção", abst), ("Total", sim + nao + abst)):
+            if oficial.get(k) is not None:
+                checks.append(oficial[k] == val)
     v["ok"] = all(checks)
     if secreta:
         v["observacao"] = "votação secreta: só presença; não gerar 'como votou'"
@@ -153,7 +179,7 @@ def camara(data: str) -> list[dict]:
         for did in sorted(estaveis - vistos):
             d = todos[did]
             nominal.append({"id": did, "nome": d["nome"], "partido": d.get("siglaPartido"),
-                            "uf": d.get("siglaUf"), "voto": "Ausente", "horario_voto": None})
+                            "uf": d.get("siglaUf"), "voto": NAO_VOTOU, "horario_voto": None})
         # pareia as trocas por UF: se alguém da troca votou, o outro da mesma UF não estava em exercício
         mudaram = set(e0) ^ set(e1)
         uf_votou = {todos[d].get("siglaUf") for d in mudaram & vistos}
@@ -177,7 +203,7 @@ def camara(data: str) -> list[dict]:
             for did in transicao:
                 d = todos[did]
                 nominal.append({"id": did, "nome": d["nome"], "partido": d.get("siglaPartido"),
-                                "uf": d.get("siglaUf"), "voto": "Ausente", "horario_voto": None})
+                                "uf": d.get("siglaUf"), "voto": NAO_VOTOU, "horario_voto": None})
         elif transicao and falta > 0:
             troca = {"vagas_sem_dono": falta,
                      "candidatos": [f"{todos[d]['nome']} ({todos[d].get('siglaPartido')}-{todos[d].get('siglaUf')})"
@@ -323,7 +349,7 @@ def main():
                 val = v["validacao"]
                 print(f"{casa} {v['pauta']['id_votacao']} {v['pauta']['materia']}: "
                       f"{val['total_parlamentares']}/{val['total_esperado']} parlamentares, "
-                      f"oficial={val['placar_oficial']} contado={val['placar_contado']} "
+                      f"oficial={val['placar_oficial']} composicao={val['composicao']} "
                       f"{'OK' if val['ok'] else 'REVISAR'}{' (secreta)' if v['secreta'] else ''}")
 
 
