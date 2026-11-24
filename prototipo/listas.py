@@ -202,9 +202,13 @@ def camara(data: str) -> list[dict]:
         props = det.get("proposicoesAfetadas") or []
         materia = det.get("proposicaoObjeto") or (
             f"{props[0]['siglaTipo']} {props[0]['numero']}/{props[0]['ano']}" if props else "")
+        # o id da votação é <id da proposição>-<sequencial>; o site da Câmara busca pela proposição
+        id_prop = props[0]["id"] if props else int(i.split("-")[0])
         pauta = {
             "casa": "Câmara dos Deputados", "id_votacao": i, "data_sessao": det.get("data"),
             "encerrada_em": det.get("dataHoraRegistro"), "materia": materia,
+            "id_proposicao": id_prop,
+            "url_materia": f"https://www.camara.leg.br/propostas-legislativas/{id_prop}",
             "ementa": props[0].get("ementa") if props else None,
             "o_que_foi_votado": det.get("descUltimaAberturaVotacao") or det.get("descricao"),
             "resultado": det.get("descricao"),
@@ -268,7 +272,9 @@ def senado(data: str) -> list[dict]:
         pauta = {
             "casa": "Senado Federal", "id_votacao": v["codigoSessaoVotacao"], "data_sessao": v.get("dataSessao"),
             "inicio": o.get("dataInicioVotacao"), "encerrada_em": o.get("dataTerminoVotacao"),
-            "materia": v.get("identificacao"), "ementa": v.get("ementa"),
+            "materia": v.get("identificacao"), "id_proposicao": v.get("codigoMateria"),
+            "url_materia": f"https://www25.senado.leg.br/web/atividade/materias/-/materia/{v.get('codigoMateria')}",
+            "ementa": v.get("ementa"),
             "o_que_foi_votado": v.get("descricaoVotacao"),
             "resultado": {"A": "Aprovado", "R": "Rejeitado"}.get(v.get("resultadoVotacao"), v.get("resultadoVotacao")),
             "url_api": f"{c.SENADO}/votacao?codigoSessao={v.get('codigoSessao')}",
@@ -286,13 +292,15 @@ def gravar(votacoes: list[dict], casa: str, data: str):
     for v in votacoes:
         i = str(v["pauta"]["id_votacao"])
         (pasta / f"{i}.json").write_text(json.dumps(v, ensure_ascii=False, indent=1), encoding="utf-8")
-        cab = ["casa", "id_votacao", "materia", "o_que_foi_votado", "parlamentar", "partido", "uf", "voto"]
+        cab = ["casa", "id_votacao", "materia", "ementa", "o_que_foi_votado", "resultado", "url_materia",
+               "parlamentar", "partido", "uf", "voto"]
         with open(pasta / f"{i}_nominal.csv", "w", newline="", encoding="utf-8") as f:
             w = csv.writer(f)
             w.writerow(cab)
             for p in v["lista_nominal"]:
-                w.writerow([v["pauta"]["casa"], i, v["pauta"]["materia"], v["pauta"]["o_que_foi_votado"],
-                            p["nome"], p["partido"], p["uf"], p["voto"]])
+                pa = v["pauta"]
+                w.writerow([pa["casa"], i, pa["materia"], pa["ementa"], pa["o_que_foi_votado"], pa["resultado"],
+                            pa["url_materia"], p["nome"], p["partido"], p["uf"], p["voto"]])
         with open(pasta / f"{i}_partidos.csv", "w", newline="", encoding="utf-8") as f:
             w = csv.writer(f)
             w.writerow(["casa", "id_votacao", "materia", "partido", "orientacao", "voto", "qtd", "parlamentares"])
