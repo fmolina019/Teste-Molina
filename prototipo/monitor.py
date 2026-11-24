@@ -78,6 +78,39 @@ def senado(data_ini: str, data_fim: str) -> list[dict]:
     return c.get_json(f"{c.SENADO}/votacao?{q}", "senado", "listagem_e_votos")
 
 
+def status_sessoes(hoje: str) -> dict:
+    """Situação da sessão deliberativa do Plenário em cada Casa: 'em andamento', 'prevista',
+    'encerrada' ou 'sem sessão'. É o sinal para trocar o intervalo entre 30 s e 10 min."""
+    out = {}
+    try:
+        q = c.urllib.parse.urlencode({"idOrgao": c.ID_PLENARIO_CAMARA, "dataInicio": hoje, "dataFim": hoje})
+        evs = c.get_json(f"{c.CAMARA}/eventos?{q}", "camara", "status").get("dados", [])
+        delib = [e for e in evs if "Deliberativa" in (e.get("descricaoTipo") or "")
+                 and "Não Deliberativa" not in (e.get("descricaoTipo") or "")]
+        sit = [(e.get("situacao") or "").lower() for e in delib]
+        out["camara"] = ("em andamento" if any("andamento" in x for x in sit) else
+                         "prevista" if any(x in ("convocada", "agendada") for x in sit) else
+                         "encerrada" if sit else "sem sessão")
+        out["camara_det"] = "; ".join(f"{e['id']} {e.get('dataHoraInicio')} {e.get('situacao')}" for e in delib)
+    except Exception as e:
+        out["camara"], out["camara_det"] = "erro", str(e)[:100]
+    try:
+        d = c.get_json(f"{c.SENADO}/plenario/agenda/dia/{hoje.replace('-', '')}?_t={time.time_ns()}",
+                       "senado", "status")
+        ss = (((d.get("AgendaPlenario") or {}).get("Sessoes") or {}).get("Sessao")) or []
+        ss = ss if isinstance(ss, list) else [ss]
+        delib = [x for x in ss if "DELIBERATIVA" in (x.get("TipoSessao") or "").upper()
+                 and "NÃO DELIBERATIVA" not in (x.get("TipoSessao") or "").upper()]
+        sit = [(x.get("SituacaoSessao") or "").lower() for x in delib]
+        out["senado"] = ("em andamento" if any("andamento" in x for x in sit) else
+                         "encerrada" if any("encerrada" in x for x in sit) else
+                         "prevista" if sit else "sem sessão")
+        out["senado_det"] = "; ".join(f"{x.get('CodigoSessao')} {x.get('Hora')} {x.get('SituacaoSessao')}" for x in delib)
+    except Exception as e:
+        out["senado"], out["senado_det"] = "erro", str(e)[:100]
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--intervalo", type=int, default=30)
@@ -99,6 +132,9 @@ def main():
                                    "atraso_s", "n_votos", "descricao"])
     mud = Log("mudancas.csv", ["detectado_em_utc", "tipo", "casa", "id", "materia", "parlamentar", "antes", "depois",
                                "minutos_desde_aparicao"])
+
+    sess = Log("sessoes.csv", ["visto_em_utc", "camara", "senado", "camara_detalhe", "senado_detalhe"])
+    ultimo_status = {}
 
     def registrar(casa, vid, materia, votos_novos: dict, meta: dict, recheck: bool):
         chave = f"{casa}:{vid}"
@@ -169,6 +205,11 @@ def main():
         n0, t0, cpu0 = len(c.REQS), time.perf_counter(), time.process_time()
         inicio = agora_utc()
         erros = ciclo(recheck)
+        st = status_sessoes(dt.datetime.now(BRT).date().isoformat())
+        if (st.get("camara"), st.get("senado")) != (ultimo_status.get("camara"), ultimo_status.get("senado")):
+            sess(agora_utc(), st.get("camara"), st.get("senado"), st.get("camara_det"), st.get("senado_det"))
+            print(f"SESSAO camara={st.get('camara')} senado={st.get('senado')}", file=sys.stderr)
+            ultimo_status.update(st)
         reqs = c.REQS[n0:]
         seg = round(time.perf_counter() - t0, 3)
         ciclos(inicio, "recheck" if recheck else "base", seg, round(time.process_time() - cpu0, 3), len(reqs),
