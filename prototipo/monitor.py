@@ -41,8 +41,9 @@ class Log:
         novo = not p.exists()
         self.f = open(p, "a", newline="", encoding="utf-8")
         self.w = csv.writer(self.f)
-        if novo:
+        if novo or p.stat().st_size == 0:
             self.w.writerow(cab)
+            self.f.flush()
 
     def __call__(self, *linha):
         self.w.writerow(linha)
