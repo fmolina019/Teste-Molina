@@ -117,7 +117,11 @@ def main():
     ap.add_argument("--recheck", type=int, default=600)
     ap.add_argument("--dias", type=int, default=7)
     ap.add_argument("--duracao", type=int, default=23 * 3600)
+    ap.add_argument("--pasta", default="monitor23h", help="subpasta de saida/ para este teste")
     a = ap.parse_args()
+
+    global DIR
+    DIR = c.SAIDA / a.pasta
 
     DIR.mkdir(parents=True, exist_ok=True)
     pest = DIR / "estado.json"
