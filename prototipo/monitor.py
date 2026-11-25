@@ -140,14 +140,16 @@ def main():
     sess = Log("sessoes.csv", ["visto_em_utc", "camara", "senado", "camara_detalhe", "senado_detalhe"])
     ultimo_status = {}
 
-    def registrar(casa, vid, materia, votos_novos: dict, meta: dict, recheck: bool):
+    def registrar(casa, vid, materia, votos_novos: dict, meta: dict, inicial: bool):
         chave = f"{casa}:{vid}"
         antigos = est["votos"].get(chave)
         ts = agora_utc()
         if antigos is None:
             est["votos"][chave] = votos_novos
             est["meta"][chave] = {"visto": time.time(), "materia": materia}
-            if not recheck:  # aparição durante o monitor (não estava lá na carga inicial)
+            # Toda votação vista depois da carga inicial é uma aparição, venha ela de um ciclo
+            # rápido ou de uma reconferência (que às vezes vê antes: as URLs têm cache separado).
+            if not inicial:
                 atraso = ""
                 if meta.get("registro"):
                     reg = dt.datetime.fromisoformat(meta["registro"]).replace(tzinfo=BRT)
@@ -166,7 +168,7 @@ def main():
         print(f"MUDOU {chave} tipo={tipo}", file=sys.stderr)
         est["votos"][chave] = votos_novos
 
-    def ciclo(recheck: bool):
+    def ciclo(recheck: bool, inicial: bool = False):
         hoje = dt.datetime.now(BRT).date()
         ini = (hoje - dt.timedelta(days=a.dias)).isoformat() if recheck else hoje.isoformat()
         fim = hoje.isoformat()
@@ -181,7 +183,7 @@ def main():
                 if vts[v["id"]]:
                     registrar("Câmara", v["id"], v.get("proposicaoObjeto") or "", vts[v["id"]],
                               {"registro": v.get("dataHoraRegistro"), "data": v.get("data"),
-                               "descricao": v.get("descricao")}, recheck)
+                               "descricao": v.get("descricao")}, inicial)
         except Exception as e:
             erros += 1
             print("erro camara:", e, file=sys.stderr)
@@ -191,7 +193,7 @@ def main():
                 votos = {f"{x['codigoParlamentar']}|{x['nomeParlamentar']}": x.get("siglaVotoParlamentar")
                          for x in v.get("votos", [])}
                 registrar("Senado", str(v["codigoSessaoVotacao"]), v.get("identificacao") or "", votos,
-                          {"data": v.get("dataSessao"), "descricao": v.get("descricaoVotacao")}, recheck)
+                          {"data": v.get("dataSessao"), "descricao": v.get("descricaoVotacao")}, inicial)
         except Exception as e:
             erros += 1
             print("erro senado:", e, file=sys.stderr)
@@ -199,7 +201,7 @@ def main():
 
     # carga inicial: últimos N dias, sem registrar como "aparição"
     if not est["votos"]:
-        ciclo(recheck=True)
+        ciclo(recheck=True, inicial=True)
         pest.write_text(json.dumps(est))
         print(f"carga inicial: {len(est['votos'])} votações", file=sys.stderr)
 
