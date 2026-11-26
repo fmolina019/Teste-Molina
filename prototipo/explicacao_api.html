@@ -1,0 +1,244 @@
+<title>API de votações nominais</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE work: technical explainer for a newsroom and a dev
+   IDEA a transit route map: two source lines (Câmara, Senado) converge through stations into two lists that feed the texts
+   PICTURE the route, full width under the title, each station named with its real endpoint
+   COLOUR ice ground, deep ink, teal for Câmara, blue for Senado, hot pink for the deliverable
+   TYPE Space Grotesk 500/700 + Inter
+   LAYOUT title + key figures across the top, route full width beneath; phone: route turns vertical */
+:root{color-scheme:light dark;--bg:light-dark(#dff1f7,#06222e);--paper:light-dark(#ffffff,#0b2f3d);--ink:light-dark(#06222e,#e6f4f8);--soft:light-dark(#3b5862,#9fbcc6);--rule:light-dark(#b9d7e1,#1d4655);--cam:light-dark(#08788c,#38b6c9);--sen:light-dark(#2f49b5,#8ea2ff);--hot:#ff2e7e;--hotink:light-dark(#c4004f,#ff6fa3)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.6 Inter,system-ui,sans-serif;overflow-x:clip;margin:0}
+h1,h2,h3{font-family:"Space Grotesk",system-ui,sans-serif;letter-spacing:-.02em;line-height:1.08;margin:0}
+h1{font-size:clamp(32px,5vw,50px);font-weight:700;max-width:16ch}
+h2{font-size:clamp(24px,3vw,32px);font-weight:700;margin-bottom:14px;max-width:30ch}
+h3{font-size:19px;font-weight:500;margin:0 0 6px}
+p{margin:0 0 12px;max-width:70ch}
+a{color:var(--cam)}
+code{font:13.5px/1.4 ui-monospace,Menlo,monospace;background:color-mix(in srgb,var(--ink) 7%,transparent);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+.band{padding-block:clamp(28px,4vw,56px);padding-left:max(5vw,16px,env(safe-area-inset-left,0px));padding-right:max(5vw,16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1240px;margin:0 auto}
+.paper{background:var(--paper)}
+.top{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:32px;align-items:end}
+.lede{font-size:18px;color:var(--soft);margin-top:14px}
+.figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(9.5em,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.figs div{background:var(--bg);padding:12px 14px}
+.figs b{display:block;font:700 clamp(24px,3vw,30px)/1.1 "Space Grotesk",sans-serif;white-space:nowrap}
+.figs span{font-size:13.5px;color:var(--soft)}
+/* route map */
+.route{margin-top:34px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2.6fr) minmax(0,1.2fr);gap:0 18px;align-items:stretch}
+.src{display:grid;gap:12px}
+.line{border-left:6px solid var(--c);background:var(--paper);padding:12px 14px;border-radius:0 8px 8px 0}
+.line h3{color:var(--c)}
+.line small{display:block;color:var(--soft);font-size:13px;line-height:1.4}
+.cam{--c:var(--cam)}.sen{--c:var(--sen)}
+.track{position:relative;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:center;padding-block:10px}
+.track::before{content:"";position:absolute;left:0;right:0;top:50%;height:8px;margin-top:-4px;background:linear-gradient(90deg,var(--cam),var(--sen));border-radius:4px}
+.st{position:relative;text-align:center;padding:0 6px}
+.st i{display:block;width:26px;height:26px;margin:0 auto;border-radius:50%;background:var(--paper);border:6px solid var(--ink)}
+.st b{display:block;font:500 15px/1.2 "Space Grotesk",sans-serif;margin-top:10px}
+.st small{display:block;font-size:13px;color:var(--soft);line-height:1.35;margin-top:4px}
+.st .up{position:absolute;bottom:calc(50% + 22px);left:0;right:0}
+.st .dn{position:absolute;top:calc(50% + 22px);left:0;right:0}
+.st.pad{min-height:250px}
+.out{display:grid;gap:12px;align-content:center}
+.deliv{background:var(--hot);color:#fff;padding:14px 16px;border-radius:8px}
+.deliv h3{color:#fff}
+.deliv small{display:block;font-size:13.5px;line-height:1.4;color:#fff}
+.textos{border:2px dashed var(--hotink);border-radius:8px;padding:10px 14px;font-size:14px;color:var(--hotink);font-weight:600}
+/* steps */
+.steps{display:grid;gap:0;counter-reset:s;border-top:1px solid var(--rule)}
+.step{display:grid;grid-template-columns:56px minmax(0,1fr) minmax(0,1fr);gap:20px;padding:20px 0;border-bottom:1px solid var(--rule)}
+.step::before{counter-increment:s;content:counter(s);font:700 34px/1 "Space Grotesk",sans-serif;color:var(--hotink)}
+.step .how{font-size:14.5px;color:var(--soft)}
+.step .how p{margin-bottom:6px}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{text-align:left;vertical-align:top;padding:9px 10px;border-bottom:1px solid var(--rule)}
+th{font-weight:600;font-size:13.5px;color:var(--soft)}
+td.n{white-space:nowrap;font-variant-numeric:tabular-nums}
+.tag{display:inline-block;font-size:12.5px;font-weight:600;padding:1px 7px;border-radius:10px;color:#fff;background:var(--c);white-space:nowrap}
+.answer{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:32px;align-items:start}
+.verdict{border-left:6px solid var(--hot);padding:4px 0 4px 18px}
+.verdict b{font:700 clamp(28px,4vw,40px)/1.1 "Space Grotesk",sans-serif;display:block;margin-bottom:8px}
+.bars{display:grid;gap:10px;margin-top:6px}
+.bar{display:grid;grid-template-columns:minmax(0,11em) minmax(0,1fr) auto;gap:10px;align-items:center;font-size:14px}
+.bar div{height:16px;background:color-mix(in srgb,var(--ink) 10%,transparent);border-radius:3px;overflow:hidden}
+.bar div span{display:block;height:100%;background:var(--c,var(--ink))}
+.bar em{font-style:normal;font-variant-numeric:tabular-nums;white-space:nowrap}
+pre{overflow-x:auto;background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:12px 14px;font:13px/1.5 ui-monospace,Menlo,monospace;margin:0 0 12px}
+ul{margin:0 0 12px;padding-left:20px}li{margin-bottom:6px;max-width:70ch}
+.note{font-size:13.5px;color:var(--soft)}
+@media(max-width:900px){.top,.two,.answer{grid-template-columns:minmax(0,1fr)}.route{grid-template-columns:minmax(0,1fr);gap:14px}.src{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.track{grid-template-columns:minmax(0,1fr);padding:0 0 0 30px;gap:14px}.track::before{left:9px;right:auto;top:0;bottom:0;width:8px;height:auto;margin:0;background:linear-gradient(180deg,var(--cam),var(--sen))}.st{text-align:left;padding:0}.st i{position:absolute;left:-30px;top:0;margin:0}.st .up,.st .dn{position:static}.st.pad{min-height:0}.st b{margin-top:0}}
+@media(max-width:600px){.src{grid-template-columns:minmax(0,1fr)}.step{grid-template-columns:36px minmax(0,1fr);gap:4px 12px}.step .how{grid-column:2}.step::before{font-size:26px}table{font-size:13px}th,td{padding:6px 4px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px;border-bottom:1px solid var(--rule)}.stack td{display:flex;justify-content:space-between;gap:12px;border:0;padding:2px 0}.stack td::before{content:attr(data-l);font-weight:600;color:var(--soft);flex:none}.bar{grid-template-columns:minmax(0,1fr) auto}.bar div{grid-column:1/-1;grid-row:2}}
+</style>
+
+<section class="band">
+ <div class="wrap">
+  <div class="top">
+   <div>
+    <h1>API de votações nominais do Congresso</h1>
+    <p class="lede">Capta cada votação nominal do Plenário da Câmara e do Senado, confere voto a voto com o placar oficial e entrega duas listas prontas para a produção de textos: como votou cada parlamentar e como votou cada partido.</p>
+   </div>
+   <div class="figs">
+    <div><b>3 a 6 min</b><span>do registro da votação à lista pronta</span></div>
+    <div><b>513 e 81</b><span>parlamentares em toda lista, votem ou não</span></div>
+    <div><b>0</b><span>votos alterados depois, em 47 h de teste</span></div>
+    <div><b>US$ 0,30</b><span>por mês de máquina</span></div>
+   </div>
+  </div>
+
+  <div class="route" aria-label="Caminho do dado, das APIs até as listas">
+   <div class="src">
+    <div class="line cam"><h3>Câmara</h3><small>dadosabertos.camara.leg.br/api/v2</small></div>
+    <div class="line sen"><h3>Senado</h3><small>legis.senado.leg.br/dadosabertos</small></div>
+   </div>
+   <div class="track">
+    <div class="st pad"><span class="up"><b>Sessão</b><small>há sessão aberta? decide 30 s ou 10 min</small></span><i></i></div>
+    <div class="st pad"><i></i><span class="dn"><b>Captação</b><small>lista as votações do dia e acha as nominais</small></span></div>
+    <div class="st pad"><span class="up"><b>Processamento</b><small>votos + deputados em exercício + orientações</small></span><i></i></div>
+    <div class="st pad"><i></i><span class="dn"><b>Validação</b><small>placar contado = placar oficial e cadeiras</small></span></div>
+   </div>
+   <div class="out">
+    <div class="deliv"><h3>Lista nominal</h3><small>todos os parlamentares, com partido, UF e voto</small></div>
+    <div class="deliv"><h3>Lista por partido</h3><small>bancada, orientação, contagem e nomes por voto</small></div>
+    <div class="textos">→ produção de textos</div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band paper">
+ <div class="wrap answer">
+  <div>
+   <h2>Lista por partido: custo adicional praticamente zero</h2>
+   <div class="verdict">
+    <b>Menos de US$ 0,001 por mês</b>
+    <p>A API não busca nada a mais para separar por partido. O partido de cada parlamentar já vem na mesma resposta que traz o voto, e é o partido da data da votação, não o atual. Agrupar é uma conta feita na memória, em 0,25 milésimo de segundo de CPU por votação.</p>
+   </div>
+   <p>O único dado extra é a <b>orientação de cada partido</b>, que vem de outra chamada: uma por votação na Câmara (2,4 KB, feita em paralelo com os votos) e uma por dia no Senado. Ela não acrescenta tempo de entrega e não muda o custo do mês.</p>
+   <p><b>Recomendação:</b> manter as duas listas na API. Tirar a lista por partido não diminui o custo nem o tempo, porque o que custa é consultar as Casas a cada 30 s, e isso é igual nos dois casos. Se a separação por partido for feita fora da API a partir da lista completa, ela continua possível, porque a lista nominal já traz o partido e o arquivo JSON traz as orientações brutas. Mas cada sistema consumidor terá de refazer a mesma conta.</p>
+  </div>
+  <div>
+   <h3>Onde vai o custo de uma votação, medido no PL 4887/2023</h3>
+   <div class="bars" id="bars"></div>
+   <p class="note" style="margin-top:12px">As barras mostram tempo de relógio. Agrupar por partido não aparece na escala: são 0,00025 s contra 3,3 s de um ciclo de consulta. O CSV por partido tem 14 KB, contra 324 KB do CSV nominal.</p>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2>Passo a passo: do Plenário à lista</h2>
+  <div class="steps">
+   <div class="step"><div><h3>Saber se há sessão</h3><p>A API consulta o estado do Plenário nas duas Casas. Com sessão aberta, consulta as votações a cada 30 s. Sem sessão, a cada 10 min.</p></div><div class="how"><p><span class="tag cam">Câmara</span> <code>/eventos?idOrgao=180</code>: Convocada, Em Andamento, Encerrada</p><p><span class="tag sen">Senado</span> <code>/plenario/agenda/dia/AAAAMMDD</code></p><p>Regras: "Convocada" com horário vencido e "Suspensa" contam como sessão. Só volta a 10 min depois de duas leituras seguidas de "Encerrada" e mais 15 min de margem.</p></div></div>
+   <div class="step"><div><h3>Listar as votações do dia</h3><p>Pede todas as votações do Plenário na data e separa as nominais. As simbólicas não têm voto individual e são descartadas.</p></div><div class="how"><p><span class="tag cam">Câmara</span> <code>/votacoes?idOrgao=180&amp;dataInicio=D&amp;dataFim=D+1</code>. O fim é exclusivo. A votação é nominal quando a descrição traz o placar ("Sim: 320; Não: 102"). Esse filtro acertou 135 de 136 votações em 2026.</p><p><span class="tag sen">Senado</span> <code>/votacao?dataInicio&amp;dataFim&amp;_t=…</code>. O parâmetro <code>_t</code> fura o cache de 10 min da CDN.</p></div></div>
+   <div class="step"><div><h3>Baixar os votos e a pauta</h3><p>Para cada votação nominal nova, busca o voto de cada parlamentar e a descrição do que foi votado. No Senado, os votos já vêm junto da votação.</p></div><div class="how"><p><span class="tag cam">Câmara</span> <code>/votacoes/{id}</code>, <code>/votacoes/{id}/votos</code> e <code>/votacoes/{id}/orientacoes</code>, em paralelo</p><p><span class="tag sen">Senado</span> <code>/plenario/votacao/orientacaoBancada/AAAAMMDD</code> para orientações e placar oficial</p></div></div>
+   <div class="step"><div><h3>Completar a Casa inteira</h3><p>A Câmara só lista quem votou. A API completa a lista com os deputados em exercício no dia, e quem falta entra como "Não votou". O Senado já traz os 81, com o motivo oficial de cada ausência.</p></div><div class="how"><p><span class="tag cam">Câmara</span> <code>/deputados?dataInicio=D&amp;dataFim=D</code>. Numa troca de mandato no dia, decide pelo horário do primeiro voto de quem entrou.</p><p>Não dá para escrever "Ausente" na Câmara: a API não informa presença, e quem estava no Plenário sem votar fica igual a quem faltou.</p></div></div>
+   <div class="step"><div><h3>Agrupar por partido</h3><p>Junta os votos por partido, conta cada tipo de voto e anexa a orientação do partido. Na Câmara, se o partido não orientou, usa a orientação da federação.</p></div><div class="how"><p>Usa o partido gravado no voto. Em 2026, 134 deputados e 13 senadores trocaram de partido.</p><p>Governo, Oposição, Maioria e Minoria não são partidos: ficam só nas orientações brutas do JSON.</p></div></div>
+   <div class="step"><div><h3>Conferir com o placar oficial</h3><p>Compara o placar contado com o oficial e o número de nomes com o de cadeiras ocupadas. O que não fecha sai marcado para revisão, sem nome inventado.</p></div><div class="how"><p>O "Total" oficial da Câmara é Sim + Não + Abstenção. Obstrução, presidente e quem não votou ficam fora dele.</p><p>Em 2026, 204 de 209 listas bateram 100%. As 5 restantes eram uma troca de mandato em 23/11 em que nenhum dos dois votou.</p></div></div>
+   <div class="step"><div><h3>Entregar e vigiar</h3><p>Grava um JSON e dois CSV por votação assim que passa na validação. A cada 10 min, reconfere os últimos 7 dias para pegar qualquer errata.</p></div><div class="how"><p>Saída: <code>saida/listas/&lt;casa&gt;/&lt;data&gt;/&lt;id&gt;.json</code>, <code>_nominal.csv</code> e <code>_partidos.csv</code></p><p>Nos dois testes, nenhum voto mudou depois de publicado.</p></div></div>
+  </div>
+ </div>
+</section>
+
+<section class="band paper">
+ <div class="wrap">
+  <h2>Tudo o que a API extrai das duas Casas</h2>
+  <div class="scroll">
+   <table class="stack">
+    <thead><tr><th>Dado</th><th>Câmara</th><th>Senado</th><th>Vai para</th></tr></thead>
+    <tbody id="campos"></tbody>
+   </table>
+  </div>
+  <p class="note" style="margin-top:12px">As mesmas APIs têm outros dados que ficaram fora do escopo, como foto e contato dos parlamentares, autores e tramitação das matérias, votações em comissões e discursos. Dá para acrescentar se a produção de textos pedir.</p>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap two">
+  <div>
+   <h2>O uso: listas para a produção de textos</h2>
+   <ul>
+    <li><b>Captação:</b> a API acompanha as sessões do Plenário das duas Casas e detecta cada votação nominal nova poucos minutos depois do registro.</li>
+    <li><b>Processamento:</b> monta a lista completa da Casa, separa por partido e confere tudo com o placar oficial antes de liberar.</li>
+    <li><b>Fornecimento:</b> entrega por votação a pauta (matéria, ementa, o que foi votado, resultado, horário e link) e as duas listas, em JSON e CSV. O texto pode citar "como votou cada deputado" e "como votou cada bancada" sem conta manual.</li>
+    <li><b>Votação secreta:</b> sai marcada (<code>secreta: true</code>). Há a lista de quem votou, mas não o voto, e o texto não deve dizer como cada um votou.</li>
+   </ul>
+   <h3 style="margin-top:20px">Exemplo de linha, lista por partido</h3>
+   <pre>casa,id_votacao,materia,partido,orientacao,voto,qtd,parlamentares
+Câmara dos Deputados,2394518-60,PL 4887/2023,PL,Não,Não,75,Adilson Barroso (SP); Alberto Fraga (DF); …
+Câmara dos Deputados,2394518-60,PL 4887/2023,PL,Não,Não votou,18,Altineu Côrtes (RJ); …</pre>
+  </div>
+  <div>
+   <h2>Os testes internos</h2>
+   <div class="scroll">
+    <table>
+     <thead><tr><th>Medida</th><th>23 h</th><th>24 h</th></tr></thead>
+     <tbody>
+      <tr><td>Ciclos de consulta</td><td class="n">2.649</td><td class="n">2.860</td></tr>
+      <tr><td>Cobertura do tempo</td><td class="n">95,9%</td><td class="n">99,3%</td></tr>
+      <tr><td>Erros (todos das APIs)</td><td class="n">0</td><td class="n">10</td></tr>
+      <tr><td>Ciclo rápido, mediana</td><td class="n">3,1 s</td><td class="n">3,3 s</td></tr>
+      <tr><td>Votações nominais novas</td><td>PL 1969/2022</td><td>PL 4887/2023</td></tr>
+      <tr><td>Atraso de publicação</td><td class="n">≈ 3 min</td><td class="n">≈ 6 min</td></tr>
+      <tr><td>Lista conferida</td><td class="n">513/513, total 441</td><td class="n">513/513, total 422</td></tr>
+      <tr><td>Votos alterados depois</td><td class="n">0</td><td class="n">0</td></tr>
+     </tbody>
+    </table>
+   </div>
+   <p class="note" style="margin-top:10px">Os erros do teste de 24 h vieram de uma instabilidade da API da Câmara (respostas 503/504) e de uma conexão do Senado que caiu. Todos se recuperaram no ciclo seguinte.</p>
+   <h3 style="margin-top:20px">Limites que o texto precisa conhecer</h3>
+   <ul>
+    <li>A Câmara publica a votação de 3 a 6 min depois do registro, e o monitor não consegue ser mais rápido que isso.</li>
+    <li>A API da Câmara chegou a mostrar uma sessão como "Convocada" por 25 min depois da abertura. Por isso o horário convocado já conta como sessão.</li>
+    <li>O parâmetro que fura o cache do Senado não é documentado e deve ser confirmado com o Senado.</li>
+    <li>Votações simbólicas não têm lista. Esse limite é da própria votação, não da API.</li>
+   </ul>
+  </div>
+ </div>
+</section>
+
+<section class="band paper">
+ <div class="wrap">
+  <h2>Como rodar o protótipo</h2>
+  <p>Python 3.9 ou mais novo, sem bibliotecas externas. O código está em <code>prototipo/</code>, na branch <code>claude/epic-heisenberg-5eduq6</code> do repositório <code>fmolina019/Teste-Molina</code>.</p>
+  <pre># listas de um dia (as duas Casas): JSON + CSV nominal + CSV por partido, com validação
+python3 listas.py --data 2026-11-25
+
+# monitor contínuo: 30 s, reconferência de 7 dias a cada 10 min
+python3 monitor.py --intervalo 30 --recheck 600 --dias 7 --duracao 86400 --pasta producao</pre>
+  <p class="note">Os detalhes de cada medição, os custos por intervalo e os riscos estão no <a href="https://claude.ai/artifact/1gvaxgBfZvAApb7XdMwQhR">relatório de handoff</a>.</p>
+ </div>
+</section>
+
+<script>
+{
+const C='<span class="tag cam">Câmara</span>',S='<span class="tag sen">Senado</span>';
+const campos=[
+ ['Identificação da votação','id (ex. 2394518-60) e id da proposição','código da sessão de votação e da matéria','pauta'],
+ ['Matéria','sigla, número e ano (PL 4887/2023)','identificação (PLP 299/2026)','pauta'],
+ ['Ementa','sim','sim','pauta'],
+ ['O que foi votado','texto da abertura da votação (destaque, turno, emenda)','descrição da votação','pauta'],
+ ['Resultado','texto com placar oficial','A/R → Aprovado/Rejeitado, placar contado','pauta'],
+ ['Data e hora','data da sessão e hora do registro','data da sessão, início e fim da votação','pauta'],
+ ['Links','página da matéria e da API','página da matéria e da API','pauta'],
+ ['Parlamentar','id, nome, partido na data, UF','código, nome, partido na data, UF','lista nominal'],
+ ['Voto','Sim, Não, Abstenção, Obstrução, Presidente (art. 17), Não votou','Sim, Não, Abstenção, Presidente (art. 51), motivo da ausência','lista nominal'],
+ ['Horário de cada voto','sim','não','JSON'],
+ ['Motivo da ausência','não existe na API','Presente sem voto, Atividade parlamentar, Licença saúde, Missão, Não compareceu e outros','lista nominal'],
+ ['Orientação de bancada','partidos, federações, Governo, Oposição','partidos, Governo, Oposição, Maioria, Minoria','lista por partido'],
+ ['Votação secreta','marcada, só presença','marcada, só presença','validação'],
+ ['Conferência','placar oficial, cadeiras ocupadas, duplicados, troca de mandato','placar oficial, 81 cadeiras, duplicados','validação'],
+ ['Estado da sessão','Convocada, Em Andamento, Encerrada','Agendada, Em andamento, Suspensa, Encerrada','frequência']];
+const e=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+document.getElementById('campos').innerHTML=campos.map(r=>`<tr><td data-l="Dado"><b>${e(r[0])}</b></td><td data-l="Câmara">${e(r[1])}</td><td data-l="Senado">${e(r[2])}</td><td data-l="Vai para">${e(r[3])}</td></tr>`).join('');
+const b=[['Ciclo de consulta (as duas Casas)',3.3,'3,3 s','var(--ink)'],['Votos + detalhe da votação',2.7,'≈ 2,7 s','var(--cam)'],['Orientações (em paralelo)',2.7,'≈ 2,7 s','var(--sen)'],['Agrupar por partido',0.00025,'0,00025 s','var(--hot)']];
+document.getElementById('bars').innerHTML=b.map(([l,v,t,c])=>`<div class="bar" style="--c:${c}"><span>${l}</span><div><span style="width:${Math.max(v/3.3*100,0.6)}%"></span></div><em>${t}</em></div>`).join('');
+}
+</script>
