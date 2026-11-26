@@ -13,3 +13,6 @@ visto_em_utc,camara,senado,camara_detalhe,senado_detalhe
 2026-11-25T23:50:27+00:00,erro,encerrada,falhou: https://dadosabertos.camara.leg.br/api/v2/eventos?idOrgao=180&dataInicio=2026-11-25&dataFim=,594182 14:00 Encerrada
 2026-11-25T23:51:18+00:00,encerrada,encerrada,85492 2026-11-25T14:21 Encerrada,594182 14:00 Encerrada
 2026-11-26T00:22:04+00:00,encerrada,encerrada,85492 2026-11-25T14:21 Encerrada,594182 14:00 Encerrada
+2026-11-26T01:17:25+00:00,erro,encerrada,falhou: https://dadosabertos.camara.leg.br/api/v2/eventos?idOrgao=180&dataInicio=2026-11-25&dataFim=,594182 14:00 Encerrada
+2026-11-26T01:17:45+00:00,encerrada,encerrada,85492 2026-11-25T14:21 Encerrada,594182 14:00 Encerrada
+2026-11-26T01:20:08+00:00,erro,encerrada,falhou: https://dadosabertos.camara.leg.br/api/v2/eventos?idOrgao=180&dataInicio=2026-11-25&dataFim=,594182 14:00 Encerrada

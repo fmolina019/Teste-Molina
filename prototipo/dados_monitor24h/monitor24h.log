@@ -15,3 +15,8 @@ SESSAO camara=erro senado=encerrada
 erro camara: falhou: https://dadosabertos.camara.leg.br/api/v2/votacoes?idOrgao=180&dataInicio=2026-11-25&dataFim=2026-11-26&itens=100&pagina=1 (HTTP Error 503: Service Unavailable)
 SESSAO camara=encerrada senado=encerrada
 SESSAO camara=encerrada senado=encerrada
+SESSAO camara=erro senado=encerrada
+SESSAO camara=encerrada senado=encerrada
+erro camara: falhou: https://dadosabertos.camara.leg.br/api/v2/votacoes?idOrgao=180&dataInicio=2026-11-25&dataFim=2026-11-26&itens=100&pagina=1 (HTTP Error 504: Gateway Timeout)
+SESSAO camara=erro senado=encerrada
+erro camara: falhou: https://dadosabertos.camara.leg.br/api/v2/votacoes?idOrgao=180&dataInicio=2026-11-25&dataFim=2026-11-26&itens=100&pagina=1 (HTTP Error 504: Gateway Timeout)
