@@ -30,3 +30,5 @@ erro camara: falhou: https://dadosabertos.camara.leg.br/api/v2/votacoes?idOrgao=
 erro camara: falhou: https://dadosabertos.camara.leg.br/api/v2/votacoes?idOrgao=180&dataInicio=2026-11-25&dataFim=2026-11-26&itens=100&pagina=1 (HTTP Error 504: Gateway Timeout)
 SESSAO camara=encerrada senado=encerrada
 SESSAO camara=encerrada senado=encerrada
+SESSAO camara=prevista senado=sem sessão
+SESSAO camara=prevista senado=sem sessão
