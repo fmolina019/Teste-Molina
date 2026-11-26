@@ -40,3 +40,4 @@ SESSAO camara=prevista senado=sem sessão
 erro senado: falhou: https://legis.senado.leg.br/dadosabertos/votacao?dataInicio=2026-11-26&dataFim=2026-11-26&_t=1795682253949026013 (<urlopen error [Errno 104] Connection reset by peer>)
 SESSAO camara=prevista senado=sem sessão
 SESSAO camara=prevista senado=sem sessão
+SESSAO camara=prevista senado=sem sessão
